@@ -4,10 +4,12 @@ from typing import Dict
 
 class TCPServer():
 
-    def __init__(self, server_ip: str = '', timeout: int = 5):
+    def __init__(self, server_ip: str = '', timeout: int = 10, backlog: int = 0):
         self.listening_ports: Dict[int, socket.socket | None] = {}
         self.server_ip = server_ip
         self.timeout = timeout
+        self.backlog = backlog
+
         print(f'[*] Created Server [IP: {self.server_ip}]')
 
     def get_server_ip(self) -> str:
@@ -26,23 +28,27 @@ class TCPServer():
     def is_listening(self, port_number: int) -> bool:
         if port_number not in self.listening_ports.keys():
             self.listening_ports[port_number] = None
+            return False
 
         if self.listening_ports[port_number] is None:
             return False
-        else:
-            return True
+        
+        return True
 
     def start_listener(self, port_number: int) -> None:
         if self.is_listening(port_number):
+            print(f'[!] Port {port_number} is Already Listening')
             return None
 
-        self.listening_ports[port_number] = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.listening_ports[port_number].settimeout(self.timeout)
+        new_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        new_sock.settimeout(self.timeout)
 
-        self.listening_ports[port_number].bind((self.server_ip, port_number))
-        self.listening_ports[port_number].listen(0)
+        new_sock.bind((self.server_ip, port_number))
+        new_sock.listen(self.backlog)
 
-        print(f'[*] Listening on {self.server_ip}:{port_number}')
+        self.listening_ports[port_number] = new_sock
+
+        print(f'[*] Started Listener on Port {port_number}')
 
     def stop_listener(self, port_number: int) -> None:
         if not self.is_listening(port_number):
@@ -50,37 +56,40 @@ class TCPServer():
         
         self.listening_ports[port_number].close()
         self.listening_ports[port_number] = None
-        print(f'[*] Port Closed: {port_number}')
+        print(f'[*] Port {port_number} is Closed')
 
     def accept_connection(self, port_number: int) -> None:
         if not self.is_listening(port_number):
+            print(f'[!] Port {port_number} is not Listening')
+        
+        current_sock = self.listening_ports[port_number]
+
+        try:
+            conn, addr = current_sock.accept()
+        except TimeoutError:
+            print(f'[!] No Incoming Connections [Port: {port_number}]')
             return None
         
-        try:
-            conn, addr = self.listening_ports[port_number].accept()
-        except TimeoutError:
-            print(f'[!] Connection Timeout [{port_number}]')
-            return None
-
-        print(f'[*] Connection Established on {port_number} from {addr[0]}:{addr[1]}')
+        print(f'[*] Connection Established on {port_number} from {addr}')
+        print('[*] Waiting for data...')
 
         while True:
+            
             try:
                 data = conn.recv(4096)
             except TimeoutError:
-                print('[!] Connection Timedout')
-                break
-            except ConnectionAbortedError:
-                print('[!] Connection Aborted')
+                print('[!] Timeout: No Message Received')
                 break
 
-            print(f'Incoming Message: {data.decode('utf-8')}')
+            print(f'[*] Incoming Message: {data.decode('utf-8')}')
 
-            conn.sendall(b'Message Received')
-            print('[*] Reply Sent')
+            try:
+                conn.sendall(b'Message Received')
+            except TimeoutError:
+                print('[!] Timeout: Reply Failed to Send')
+                continue
 
-            if not data:
-                break
+        conn.close()
 
 if __name__ == '__main__':
     print('=== Create Server ===')
