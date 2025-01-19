@@ -64,14 +64,14 @@ class TCPClient():
             if not data:
                 break
 
-            print(f'[*] Incoming Message: {data}')
+            print(f'[*] Incoming Message: {data.decode('utf-8')}')
 
 if __name__ == '__main__':
     test_client = TCPClient(1)
 
     print(test_client.is_connected(), 'timeout:', test_client.get_timeout())
 
-    test_client.create_connection('127.0.0.1', 1234)
+    test_client.create_connection('127.0.0.1', 4444)
 
     test_client.send_message('Hello, Server\n')
 
