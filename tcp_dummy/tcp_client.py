@@ -3,7 +3,7 @@ import socket
 
 class TCPClient():
 
-    def __init__(self, timeout: int = 5):
+    def __init__(self, timeout: int = 10):
         self.current_connection: socket.socket | None = None
         self.timeout = timeout
 
@@ -16,10 +16,7 @@ class TCPClient():
     
     # Methods
     def is_connected(self) -> bool:
-        if self.current_connection is not None:
-            return True
-        else:
-            return False
+        return self.current_connection is not None
         
     def close_connection(self) -> None:
         self.current_connection.close()
@@ -28,24 +25,33 @@ class TCPClient():
 
     def create_connection(self, host_ip: str, port: int) -> None:
         if self.is_connected():
+            print('[*] Closing Current Connection')
             self.close_connection()
 
-        self.current_connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.current_connection.settimeout(self.timeout)
+        new_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        new_sock.settimeout(self.timeout)
 
         try:
-            self.current_connection.connect((host_ip, port))
-            print(f'[*] Connection Established {host_ip}:{port}')
+            new_sock.connect((host_ip, port))
         except TimeoutError:
-            print('[!] Connection Timed Out')
-            self.close_connection()
+            print(f'[!] Connection Timeout with {host_ip}:{port}')
+            new_sock.close()
+            return None
+        
+        self.current_connection = new_sock
+        print(f'[*] Connection Established with {host_ip}:{port}')
 
     def send_message(self, message: str) -> None:
         if not self.is_connected():
             print('[!] No Connection Active')
-            return
+            return None
         
-        self.current_connection.sendall(bytes(message, encoding='utf-8'))
+        try:
+            self.current_connection.sendall(bytes(message, encoding='utf-8'))
+        except TimeoutError:
+            print('[!] Connection Timeout: Message Didn\'t Send')
+            return None
+        
         print(f'[*] Outgoing Message: {message}')
 
     def receive_message(self) -> None:
