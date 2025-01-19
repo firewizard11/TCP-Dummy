@@ -4,7 +4,7 @@ from typing import Dict
 
 class TCPServer():
 
-    def __init__(self, server_ip: str = '', timeout = 5):
+    def __init__(self, server_ip: str = '', timeout: int = 5):
         self.listening_ports: Dict[int, socket.socket | None] = {}
         self.server_ip = server_ip
         self.timeout = timeout
@@ -16,6 +16,12 @@ class TCPServer():
     def set_server_ip(self, new_ip: str) -> None:
         self.server_ip = new_ip
         print(f'[*] New Server IP: {self.server_ip}')
+
+    def get_timeout(self) -> int:
+        return self.timeout
+
+    def set_timeout(self, new_timeout: int) -> None:
+        self.timeout = new_timeout
 
     def is_listening(self, port_number: int) -> bool:
         if port_number not in self.listening_ports.keys():
@@ -50,7 +56,12 @@ class TCPServer():
         if not self.is_listening(port_number):
             return None
         
-        conn, addr = self.listening_ports[port_number].accept()
+        try:
+            conn, addr = self.listening_ports[port_number].accept()
+        except TimeoutError:
+            print(f'[!] Connection Timeout [{port_number}]')
+            return None
+
         print(f'[*] Connection Established on {port_number} from {addr[0]}:{addr[1]}')
 
         while True:
@@ -66,15 +77,26 @@ class TCPServer():
             print(f'Incoming Message: {data.decode('utf-8')}')
 
             conn.sendall(b'Message Received')
+            print('[*] Reply Sent')
 
             if not data:
                 break
 
 if __name__ == '__main__':
-    test_server = TCPServer('127.0.0.1')
+    print('=== Create Server ===')
+    test_server = TCPServer('127.0.0.1', 20)
 
+    print('=== Port 1234 ===')
     test_server.start_listener(1234)
-
-    test_server.accept_connection(1234)
-
+    print(f'Is Listening: {test_server.is_listening(1234)}')
     test_server.stop_listener(1234)
+    print(f'Is Listening: {test_server.is_listening(1234)}')
+
+    print('=== Port 4444 ===')
+    test_server.start_listener(4444)
+    print(f'Is Listening: {test_server.is_listening(4444)}')
+    test_server.accept_connection(4444)
+    print(f'Is Listening: {test_server.is_listening(4444)}')
+    test_server.accept_connection(4444)
+    test_server.stop_listener(4444)
+    print(f'Is Listening: {test_server.is_listening(4444)}')
