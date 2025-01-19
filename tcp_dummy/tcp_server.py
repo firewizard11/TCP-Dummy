@@ -1,17 +1,24 @@
+""" This Module Defines a TCPServer Class """
+
 import socket
-from typing import Dict
+from typing import List
+
+MAX_PORTS = 65535
+CLOSED = 0
 
 
 class TCPServer():
+    """ Represents a TCP Server """
 
-    def __init__(self, server_ip: str = '', timeout: int = 10, backlog: int = 0):
-        self.listening_ports: Dict[int, socket.socket | None] = {}
+    def __init__(self, server_ip: str = '', timeout: int = 10, backlog: int = 5):
+        self.open_ports: List[int | socket.socket] = [CLOSED] * MAX_PORTS
         self.server_ip = server_ip
         self.timeout = timeout
         self.backlog = backlog
 
         print(f'[*] Created Server [IP: {self.server_ip}, Timeout {self.timeout}, Backlog: {self.backlog}]')
 
+    # === getters & setters
     def get_server_ip(self) -> str:
         return self.server_ip
 
@@ -33,90 +40,61 @@ class TCPServer():
         self.backlog = new_backlog
         print(f'[*] New Backlog: {self.backlog}')
 
-    def is_listening(self, port_number: int) -> bool:
-        if port_number not in self.listening_ports.keys():
-            self.listening_ports[port_number] = None
+    # === methods ===
+    def is_open(self, port: int) -> bool:
+        if self.open_ports[port - 1] is CLOSED:
             return False
-
-        if self.listening_ports[port_number] is None:
-            return False
+        else:
+            return True
         
-        return True
-
-    def start_listening(self, port_number: int) -> None:
-        print(f'[*] Starting Listener on {port_number}...')
-
-        if self.is_listening(port_number):
-            print(f'[!] Port {port_number} is Already Listening')
-            return None
-
-        new_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        new_sock.settimeout(self.timeout)
-
-        new_sock.bind((self.server_ip, port_number))
-        new_sock.listen(self.backlog)
-
-        self.listening_ports[port_number] = new_sock
-
-        print(f'[*] Started Listener on Port {port_number}')
-
-    def stop_listening(self, port_number: int) -> None:
-        print(f'[*] Stopping Listener {port_number}...')
-
-        if not self.is_listening(port_number):
-            return None
+    def open_port(self, port: int) -> None:
+        if self.is_open(port):
+            raise Exception(f'Port {port} is Already Open')
         
-        self.listening_ports[port_number].close()
-        self.listening_ports[port_number] = None
-        print(f'[*] Port {port_number} Closed')
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(self.timeout)
 
-    def accept_connection(self, port_number: int) -> None:
-        print(f'[*] Waiting for Connection on {port_number}...')
+        sock.bind((self.server_ip, port))
+        sock.listen(self.backlog)
 
-        if not self.is_listening(port_number):
-            print(f'[!] Port {port_number} is not Listening')
-            return None
+        self.open_ports[port - 1] = sock
+
+    def close_port(self, port: int) -> None:
+        if not self.is_open(port):
+            raise Exception(f'Port {port} is Already Closed')
         
-        current_sock = self.listening_ports[port_number]
+        self.open_ports[port - 1].close()
+        self.open_ports[port - 1] = CLOSED
 
-        while True:
-            try:
-                conn, addr = current_sock.accept()
-                break
-            except TimeoutError:
-                print(f'[!] Timeout: No Incoming Connections [Port: {port_number}]')
-                continue
+    def close_server(self) -> None:
+        for port in self.open_ports:
+            if port is not CLOSED:
+                port.close()
+
+    def accept_connection(self, port: int) -> None:
+        if not self.is_open(port):
+            raise Exception(f'Port {port} is not Open')
         
-        print(f'[*] Connection Established on {port_number} from {addr}')
+        connection, address = self.open_ports[port - 1].accept()
 
-        print('[*] Waiting for data...')
 
-        while True:
-            
-            try:
-                data = conn.recv(4096)
-            except TimeoutError:
-                print('[!] Timeout: No Message Received')
-                break
-            except ConnectionAbortedError:
-                print(f'[*] Connection Closed by {addr[0]}')
-                return None
-            except ConnectionResetError:
-                print(f'[*] Connection Cosed by {addr[0]}')
-                return None
 
-            print(f'[*] Incoming Message: {data.decode('utf-8')}')
 
-            try:
-                conn.sendall(b'Message Received')
-            except TimeoutError:
-                print('[!] Timeout: Reply Failed to Send')
-                continue
-
-        conn.close()
 
 if __name__ == '__main__':
     test_server = TCPServer()
-    test_server.start_listening(4444)
-    test_server.start_listening(1234)
-    test_server.accept_connection(4444)
+
+    print(f'Start (OPEN?): {test_server.is_open(50)} | {test_server.is_open(4444)}')
+
+    for _ in range(10):        
+        test_server.open_port(50)
+        test_server.open_port(4444)
+
+        print(f'Open: {test_server.is_open(50)} | {test_server.is_open(4444)}')
+
+        test_server.close_port(50)
+        test_server.close_port(4444)
+
+        print(f'Closed: {not test_server.is_open(50)} | {not test_server.is_open(4444)}')
+
+    test_server.close_server()
