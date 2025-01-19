@@ -10,7 +10,7 @@ class TCPServer():
         self.timeout = timeout
         self.backlog = backlog
 
-        print(f'[*] Created Server [IP: {self.server_ip}]')
+        print(f'[*] Created Server [IP: {self.server_ip}, Timeout {self.timeout}, Backlog: {self.backlog}]')
 
     def get_server_ip(self) -> str:
         return self.server_ip
@@ -24,6 +24,14 @@ class TCPServer():
 
     def set_timeout(self, new_timeout: int) -> None:
         self.timeout = new_timeout
+        print(f'[*] New Timeout: {self.timeout}')
+
+    def get_backlog(self) -> int:
+        return self.backlog
+    
+    def set_backlog(self, new_backlog: int) -> None:
+        self.backlog = new_backlog
+        print(f'[*] New Backlog: {self.backlog}')
 
     def is_listening(self, port_number: int) -> bool:
         if port_number not in self.listening_ports.keys():
@@ -35,7 +43,9 @@ class TCPServer():
         
         return True
 
-    def start_listener(self, port_number: int) -> None:
+    def start_listening(self, port_number: int) -> None:
+        print(f'[*] Starting Listener on {port_number}...')
+
         if self.is_listening(port_number):
             print(f'[!] Port {port_number} is Already Listening')
             return None
@@ -50,27 +60,35 @@ class TCPServer():
 
         print(f'[*] Started Listener on Port {port_number}')
 
-    def stop_listener(self, port_number: int) -> None:
+    def stop_listening(self, port_number: int) -> None:
+        print(f'[*] Stopping Listener {port_number}...')
+
         if not self.is_listening(port_number):
             return None
         
         self.listening_ports[port_number].close()
         self.listening_ports[port_number] = None
-        print(f'[*] Port {port_number} is Closed')
+        print(f'[*] Port {port_number} Closed')
 
     def accept_connection(self, port_number: int) -> None:
+        print(f'[*] Waiting for Connection on {port_number}...')
+
         if not self.is_listening(port_number):
             print(f'[!] Port {port_number} is not Listening')
+            return None
         
         current_sock = self.listening_ports[port_number]
 
-        try:
-            conn, addr = current_sock.accept()
-        except TimeoutError:
-            print(f'[!] No Incoming Connections [Port: {port_number}]')
-            return None
+        while True:
+            try:
+                conn, addr = current_sock.accept()
+                break
+            except TimeoutError:
+                print(f'[!] Timeout: No Incoming Connections [Port: {port_number}]')
+                continue
         
         print(f'[*] Connection Established on {port_number} from {addr}')
+
         print('[*] Waiting for data...')
 
         while True:
@@ -80,6 +98,12 @@ class TCPServer():
             except TimeoutError:
                 print('[!] Timeout: No Message Received')
                 break
+            except ConnectionAbortedError:
+                print(f'[*] Connection Closed by {addr[0]}')
+                return None
+            except ConnectionResetError:
+                print(f'[*] Connection Cosed by {addr[0]}')
+                return None
 
             print(f'[*] Incoming Message: {data.decode('utf-8')}')
 
@@ -92,20 +116,7 @@ class TCPServer():
         conn.close()
 
 if __name__ == '__main__':
-    print('=== Create Server ===')
-    test_server = TCPServer('127.0.0.1', 20)
-
-    print('=== Port 1234 ===')
-    test_server.start_listener(1234)
-    print(f'Is Listening: {test_server.is_listening(1234)}')
-    test_server.stop_listener(1234)
-    print(f'Is Listening: {test_server.is_listening(1234)}')
-
-    print('=== Port 4444 ===')
-    test_server.start_listener(4444)
-    print(f'Is Listening: {test_server.is_listening(4444)}')
+    test_server = TCPServer()
+    test_server.start_listening(4444)
+    test_server.start_listening(1234)
     test_server.accept_connection(4444)
-    print(f'Is Listening: {test_server.is_listening(4444)}')
-    test_server.accept_connection(4444)
-    test_server.stop_listener(4444)
-    print(f'Is Listening: {test_server.is_listening(4444)}')

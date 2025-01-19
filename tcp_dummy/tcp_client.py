@@ -86,7 +86,7 @@ class TCPClient():
 
 if __name__ == '__main__':
     test_client = TCPClient()
-    test_client.create_connection('192.168.60.129', 4444)
+    test_client.create_connection('127.0.0.1', 4444)
     test_client.send_data('Data Test 1!!!!')
     test_client.create_connection('192.168.60.129', 1234)
     test_client.send_data('Data Test 2 :::::)_)_)_()()()()')
