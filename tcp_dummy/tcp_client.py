@@ -3,9 +3,18 @@ import socket
 
 class TCPClient():
 
-    def __init__(self):
+    def __init__(self, timeout: int = 5):
         self.current_connection: socket.socket | None = None
+        self.timeout = timeout
 
+    # Getters and Setters
+    def get_timeout(self) -> int:
+        return self.timeout
+    
+    def set_timeout(self, new_timeout: int) -> None:
+        self.timeout = new_timeout
+    
+    # Methods
     def is_connected(self) -> bool:
         if self.current_connection is not None:
             return True
@@ -22,7 +31,7 @@ class TCPClient():
             self.close_connection()
 
         self.current_connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.current_connection.settimeout(5)
+        self.current_connection.settimeout(self.timeout)
 
         try:
             self.current_connection.connect((host_ip, port))
@@ -42,11 +51,32 @@ class TCPClient():
     def receive_message(self) -> None:
         if not self.is_connected():
             print('[!] No Connection Active')
+            return None
 
         while True:
-            data = self.current_connection.recv(4096)
+
+            try:
+                data = self.current_connection.recv(4096)
+            except TimeoutError:
+                print('[*] No Response From Server')
+                break
 
             if not data:
                 break
 
             print(f'[*] Incoming Message: {data}')
+
+if __name__ == '__main__':
+    test_client = TCPClient(1)
+
+    print(test_client.is_connected(), 'timeout:', test_client.get_timeout())
+
+    test_client.create_connection('127.0.0.1', 1234)
+
+    test_client.send_message('Hello, Server\n')
+
+    test_client.receive_message()
+
+    test_client.send_message('No Reply?\n')
+
+    test_client.close_connection()
