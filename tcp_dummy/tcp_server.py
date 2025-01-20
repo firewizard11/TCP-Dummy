@@ -1,4 +1,4 @@
-""" This Module Defines a TCPServer Class """
+"""This Module Defines a TCPServer Class."""
 
 import socket
 import threading
@@ -9,7 +9,7 @@ CLOSED = 0
 
 
 class TCPServer():
-    """ Represents a TCP Server """
+    """Represents a TCP Server."""
 
     def __init__(self, server_ip: str = '', timeout: int = 10, backlog: int = 5):
         self.open_ports: List[int | socket.socket] = [CLOSED] * MAX_PORTS
@@ -43,7 +43,7 @@ class TCPServer():
 
     # === methods ===
     def is_open(self, port: int) -> bool:
-        """ Checks if a port is open or closed """
+        """Checks if a port is open or closed."""
 
         if self.open_ports[port - 1] is CLOSED:
             return False
@@ -51,7 +51,7 @@ class TCPServer():
             return True
 
     def open_port(self, port: int) -> None:
-        """ This method will open a port on the server """
+        """This method will open a port on the server"""
 
         print(f'[*] Opening Port [{port}]...')
 
@@ -69,7 +69,7 @@ class TCPServer():
         print(f'[*] Opened Port [{port}]')
 
     def close_port(self, port: int) -> None:
-        """ This method will close an open port """
+        """This method will close an open port."""
 
         print(f'[*] Closing Port [{port}]...')
 
@@ -82,7 +82,7 @@ class TCPServer():
         print(f'[*] Closed Port [{port}]')
 
     def close_server(self) -> None:
-        """ This Method will loop through each port and close it """
+        """This Method will loop through each port and close it."""
 
         print('[*] Closing Server...')
         for port in self.open_ports:
@@ -91,23 +91,23 @@ class TCPServer():
         print('[*] Closed Server')
 
     def accept_connection(self, port: int) -> None:
-        """ Will wait for incoming connections (until timeout)
-            When a connection establishes it will wait for data until the connection is closed
+        """Will wait for incoming connections (until timeout).
+           When a connection establishes it will wait for data until the connection is closed.
         """
 
         if not self.is_open(port):
             raise Exception(f'Port {port} is not Open')
-        
+
         try:
             connection, address = self.open_ports[port - 1].accept()
         except TimeoutError:
             print(f'[!] No Incoming Connections [{port}]')
             return None
-        
+
         print(f'[*] Connection Established {port} <- {address[0]}:{address[1]}')
 
         while True:
-            
+
             data = connection.recv(4096)
 
             print(data.decode('utf-8'))
@@ -118,8 +118,8 @@ class TCPServer():
                 break
 
     def accept_multiple_connections(self, ports: List[int]) -> None:
-        """ Will accept and process a connection on it's own thread 
-            Use if you want to accept connections on multiple ports at the same time
+        """Will accept and process a connection on it's own thread.
+           Use if you want to accept connections on multiple ports at the same time.
         """
         threads = []
 
@@ -130,11 +130,3 @@ class TCPServer():
 
         for thread in threads:
             thread.join()
-
-
-if __name__ == '__main__':
-    test_server = TCPServer()
-
-    test_server.open_port(4444)
-
-    test_server.accept_connection(4444)
