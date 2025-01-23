@@ -39,7 +39,7 @@ class TCPClient():
             new_sock.close()
             return None
         except ConnectionRefusedError:
-            print(f'[!] Connection Refused by {server_ip}')
+            print(f'[!] Connection Refused by {server_ip}:{port}')
             new_sock.close()
             return None
         
