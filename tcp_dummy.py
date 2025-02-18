@@ -1,7 +1,7 @@
 import argparse
 import tcp_client
 import tcp_server
-from helper import format_ports, validate_host, validate_port
+from helper import format_ports, validate_host
 
 
 if __name__ == '__main__':
@@ -14,6 +14,7 @@ if __name__ == '__main__':
     parser.add_argument('-P', '--Ports')
     parser.add_argument('-T', '--Timeout', type=int)
     parser.add_argument('-B', '--Backlog', type=int)
+    parser.add_argument('-D', '--Data')
 
     args = parser.parse_args()
 
@@ -51,6 +52,12 @@ if __name__ == '__main__':
         print('Error: Backlog must be between 0 and 5')
         exit()
 
+    if args.Data is None:
+        send = False
+    else:
+        data = args.Data
+        send = True
+
     match (command):
         case 'server':
             device = tcp_server.TCPServer(host, timeout, backlog)
@@ -69,10 +76,16 @@ if __name__ == '__main__':
 
             device.close_server()
         case 'client':
-            device = tcp_client.TCPClient()
+            device = tcp_client.TCPClient(timeout)
 
             if len(ports) > 1:
                 print('Error: Too Many Ports')
                 exit()
             
             device.create_connection(host, ports[0])
+
+            if send:
+                device.send_data(data)
+                device.receive_data()
+            
+            device.close_connection()
