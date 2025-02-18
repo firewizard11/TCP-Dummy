@@ -9,6 +9,7 @@ if __name__ == '__main__':
         usage='python3 tcp_dummy.py command options'
     )
 
+    # TODO: Figure out how to split server options and client options
     parser.add_argument('command', choices=['server', 'client'])
     parser.add_argument('-H', '--Host')
     parser.add_argument('-P', '--Ports')
