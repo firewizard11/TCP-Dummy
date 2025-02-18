@@ -12,6 +12,8 @@ if __name__ == '__main__':
     parser.add_argument('command', choices=['server', 'client'])
     parser.add_argument('-H', '--Host')
     parser.add_argument('-P', '--Ports')
+    parser.add_argument('-T', '--Timeout', type=int)
+    parser.add_argument('-B', '--Backlog', type=int)
 
     args = parser.parse_args()
 
@@ -32,16 +34,32 @@ if __name__ == '__main__':
     except ValueError as e:
         print(f'Error: {e}')
         exit()
+    
+    if args.Timeout is None:
+        timeout = 10
+    elif args.Timeout >= 0:
+        timeout = args.Timeout
+    else:
+        print('Error: Timeout must be greater than 0')
+        exit()
+
+    if args.Backlog is None:
+        backlog = 5
+    elif 0 < args.Backlog <= 5:
+        backlog = args.Backlog
+    else:
+        print('Error: Backlog must be between 0 and 5')
+        exit()
 
     match (command):
         case 'server':
-            device = tcp_server.TCPServer(host)
+            device = tcp_server.TCPServer(host, timeout, backlog)
 
             try:
                 for port in ports:
                     device.open_port(port)
-            except OSError:
-                print('Error: Please use an IP on your device')
+            except OSError as e:
+                print(f'Error: {e}')
                 exit()
 
             if len(ports) == 1:
@@ -49,6 +67,7 @@ if __name__ == '__main__':
             else:
                 device.accept_multiple_connections(ports)
 
+            device.close_server()
         case 'client':
             device = tcp_client.TCPClient()
 
