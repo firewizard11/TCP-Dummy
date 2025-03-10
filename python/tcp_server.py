@@ -17,7 +17,7 @@ class TCPServer():
         self.timeout = timeout
         self.backlog = backlog
 
-        print(f'[*] Created Server [IP: {self.server_ip}, Timeout {self.timeout}, Backlog: {self.backlog}]')
+        print(f'[*] Created Server [IP: "{self.server_ip}", Timeout {self.timeout}, Backlog: {self.backlog}]')
 
     # === getters & setters
     def get_server_ip(self) -> str:

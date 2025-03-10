@@ -4,6 +4,11 @@ import socket
 class TCPClient():
 
     def __init__(self, timeout: int = 10):
+        """ TCP Client Constructor
+        
+        :Parameters:
+        - timeout (int): How long to wait for connection or response (Default=10s)
+        """
         self.current_connection: socket.socket | None = None
         self.timeout = timeout
         print('[*] Client Created')
@@ -17,12 +22,24 @@ class TCPClient():
 
     # Methods
     def is_connected(self) -> bool:
+        """ Check if Client has an active connection 
+        
+        :Returns:
+        - True: If connection active
+        - False: If connection is not active
+        """
         if self.current_connection is None:
             return False
         else:
             return True
 
     def create_connection(self, server_ip: str, port: int) -> None:
+        """ Attempt to establish connection with chosen server:port
+
+        :Parameters:
+        - server_ip (str): An IPv4 address to connect to
+        - port (int): An port number to connect to
+        """
         print(f'[*] Creating Connection with {server_ip}:{port}...')
 
         if self.is_connected():
@@ -47,6 +64,9 @@ class TCPClient():
         print(f'[*] Connection Established with {server_ip}:{port}') 
 
     def close_connection(self) -> None:
+        """ Will close any active connection
+        If no connection is active will end early
+        """
         if not self.is_connected():
             return None
 
@@ -56,6 +76,13 @@ class TCPClient():
         print('[*] Connection Closed')
 
     def send_data(self, data: str) -> None:
+        """ Will try to send a message to connected server until timeout
+        Terminates early if no active connection
+
+        :Parameter:
+        - data (str): The data to be sent        
+        """
+
         if not self.is_connected():
             return None
         
@@ -68,6 +95,9 @@ class TCPClient():
         print(f'[*] Outgoing Data: {data}')
 
     def receive_data(self) -> None:
+        """ Will wait for data to arrive from server until timeout
+        Finish early if no active connection
+        """
         if not self.is_connected():
             return None
 
